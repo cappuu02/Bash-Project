@@ -13,3 +13,7 @@ clear
 echo "ESECUZIONE IN CORSO..."
 echo "\n"
 ./progetto $filosofi $stallo $soluzione $starvation
+
+#PROGETTO FINALE LUCA CAPUCCINI
+#MATRICOLA 347711
+#UNIPG..
