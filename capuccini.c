@@ -10,12 +10,13 @@
 #include <semaphore.h>
 #include <errno.h>
 
+
 char str[20];
 int num_filosofi = 0; //numero da avere obbligatorio
 int flag_stallo, flag_soluzione, flag_starvation = 0; //valori interi
 sem_t sem; // semaforo
 struct timespec tempo;
-sem_t * forchetta[5]; //creo un array di fochette (tante quanti i filosofi)
+sem_t * forchetta[64]; //creo un array di fochette (tante quanti i filosofi)
 int pipefd[2]; //Array dei file descriptor
 int count_stallo = 0; //variabile che utilizzo per gestire il problema di stallo
 int check = 0; //VARIABILE PER USCIRE DA STALLO E STARVATION
@@ -387,9 +388,7 @@ int main(int argc, char *argv[]){
         printf("\n[FINE DELLA CENA DEI FILOSOFI]\n");
         printf("\nSaluti dal parent dei filosofi %d\n", getppid());
 
-        
-        
         return 0;//return permette al processo padre di terminare al termine del programma
 }//fine main
 
-//VERSIONE 4 LUGLIO (errata: il problema risulta essere la funzione cancella)
+//VERSIONE 4 LUGLIO (con correzione prof)
