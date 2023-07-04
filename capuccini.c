@@ -11,11 +11,11 @@
 #include <errno.h>
 
 
-char str[20];
+char str[20]; //array utilizzato per le forchette
 int num_filosofi = 0; //numero da avere obbligatorio
 int flag_stallo, flag_soluzione, flag_starvation = 0; //valori interi
 sem_t sem; // semaforo
-struct timespec tempo;
+struct timespec tempo; //tempo utilizzato 
 sem_t * forchetta[64]; //creo un array di fochette (tante quanti i filosofi)
 int pipefd[2]; //Array dei file descriptor
 int count_stallo = 0; //variabile che utilizzo per gestire il problema di stallo
@@ -40,7 +40,7 @@ void cancella_forchetta(){
 
 //FUNZIONE HEADLER PER GESTIRE IL CTRL+C
 void f_handler(int iSignalcode){
-    printf("Handler: Ricevuto signal [CTRL+C]: %d\n", iSignalcode);
+    printf("Handler: Ricevuto signal [CTRL+C]: %d, dal filosofo: %d\n", iSignalcode, getpid());
     cancella_forchetta();
     check = 1;
     return;
@@ -49,7 +49,7 @@ void f_handler(int iSignalcode){
 //FUNZIONE INIZIO CENA FILOSOFI
 void inizio_cena(sem_t * forchetta[], int i, int num_filosofi){
     tempo.tv_sec = 0;//0 secondi
-    tempo.tv_nsec = 500000000;//cinquecentomilioni di nanosecondi
+    tempo.tv_nsec = 600000000;//cinquecentomilioni di nanosecondi
     while(1){
         //CASISTICA CON TUTTI INPUT 0
         if(flag_stallo == 0 && flag_soluzione == 0 && flag_starvation == 0){
@@ -79,7 +79,6 @@ void inizio_cena(sem_t * forchetta[], int i, int num_filosofi){
                 printf("\n[ERROR]: STALLO RILEVATO\n");
                 kill(0, SIGINT);
                 if(check == 1){
-                    printf("escoooo filosofo %d\n", getpid());
                     break;
                 }
             }
@@ -123,15 +122,14 @@ void inizio_cena(sem_t * forchetta[], int i, int num_filosofi){
             left= i;
             }
                 clock_gettime(CLOCK_REALTIME, &tempo_starvation);
-                tempo_starvation.tv_sec += 8;
+                tempo_starvation.tv_sec += 3;
                 printf("il filosofo con pid %d ATTENDO la forchetta destra %d\n", getpid(), right);
-                a = sem_timedwait(forchetta[i], &tempo_starvation);
+                a = sem_timedwait(forchetta[right], &tempo_starvation);
                 if(a == -1){
                     if(errno == ETIMEDOUT){
                     printf("[ERROR]: rilevata starvation\n");
                     kill(0, SIGINT);
                     if(check == 1){
-                        printf("escoooo filosofo %d\n", getpid());
                         break;
                     }
                     }
@@ -140,13 +138,12 @@ void inizio_cena(sem_t * forchetta[], int i, int num_filosofi){
                 fflush(stdout);
 
                 printf("il Filosofo con pid %d ATTENDO la forchetta sinistra %d\n", getpid(), left);
-                b = sem_timedwait(forchetta[(i+1)%num_filosofi], &tempo_starvation);
+                b = sem_timedwait(forchetta[left], &tempo_starvation);
                 if(b == -1){
                     if(errno == ETIMEDOUT){
                     printf("[ERROR]: rilevata starvation\n");
                     kill(0, SIGINT);
                     if(check == 1){
-                        printf("escoooo filosofo %d\n", getpid());
                         break;
                     }
                     }
@@ -154,10 +151,10 @@ void inizio_cena(sem_t * forchetta[], int i, int num_filosofi){
                 printf("il filosofo con pid %d HA PRESO la forchetta sinistra\n", getpid());
             }
 
-            //PROBLEMA STALLO CON STARVATION (DIFFICILE)
+            //PROBLEMA STALLO CON STARVATION (DIFFICILE) (tempo basso = favorisco starvation, tempo veloce = favorisco stallo)
             if(flag_stallo == 1 && flag_starvation == 1 && flag_soluzione == 0){
                 clock_gettime(CLOCK_REALTIME, &tempo_starvation);
-                tempo_starvation.tv_sec += 8;
+                tempo_starvation.tv_sec += 3;
 
                printf("il filosofo con pid %d ATTENDO la forchetta destra %d\n", getpid(), i);
                 a = sem_timedwait(forchetta[i], &tempo_starvation);
@@ -166,7 +163,6 @@ void inizio_cena(sem_t * forchetta[], int i, int num_filosofi){
                     printf("[ERROR]: rilevata starvation\n");
                     kill(0, SIGINT);
                     if(check == 1){
-                        printf("escoooo filosofo %d\n", getpid());
                         break;
                     }
                     }
@@ -182,7 +178,6 @@ void inizio_cena(sem_t * forchetta[], int i, int num_filosofi){
                     printf("HO CHIUSO I FILE DESCRIPTOR IN LETTURA E SCRITTURA\n");
                     kill(0, SIGINT); //non bisogna fare cancella forchetta dato che lo facciamo già nel SIGINT (CTRL+C )
                     if(check == 1){
-                        printf("escoooo filosofo %d\n", getpid());
                         break;
                     }
                 }
@@ -194,7 +189,6 @@ void inizio_cena(sem_t * forchetta[], int i, int num_filosofi){
                     printf("[ERROR]: rilevata starvation\n");
                     kill(0, SIGINT);
                     if(check == 1){
-                        printf("escoooo filosofo %d\n", getpid());
                         break;
                     }
                     }
@@ -207,9 +201,8 @@ void inizio_cena(sem_t * forchetta[], int i, int num_filosofi){
                 write(pipefd[1], &count_stallo, sizeof(int));
             }
 
-            //IF ULTIMO CASO
+            //CASO CON TUTTI FLAG IMPOSTATI AD 1
             if(flag_stallo == 1 && flag_soluzione == 1 && flag_starvation == 1){
-                tempo.tv_nsec = 900000000;//cinquecentomilioni di nanosecondi
                 int right = i;
                 int left = (i+1)% num_filosofi;
 
@@ -220,7 +213,7 @@ void inizio_cena(sem_t * forchetta[], int i, int num_filosofi){
                 }
 
                 clock_gettime(CLOCK_REALTIME, &tempo_starvation);
-                tempo_starvation.tv_sec += 8;
+                tempo_starvation.tv_sec += 3;
 
                printf("il filosofo con pid %d ATTENDO la forchetta destra %d\n", getpid(), right);
                 a = sem_timedwait(forchetta[right], &tempo_starvation);
@@ -229,7 +222,6 @@ void inizio_cena(sem_t * forchetta[], int i, int num_filosofi){
                     printf("[ERROR]: rilevata starvation\n");
                     kill(0, SIGINT);
                     if(check == 1){
-                        printf("escoooo filosofo %d\n", getpid());
                         break;
                     }
                     }
@@ -246,7 +238,6 @@ void inizio_cena(sem_t * forchetta[], int i, int num_filosofi){
                     printf("HO CHIUSO I FILE DESCRIPTOR IN LETTURA E SCRITTURA\n");
                     kill(0, SIGINT); //non bisogna fare cancella forchetta dato che lo facciamo già nel SIGINT (CTRL+C )
                     if(check == 1){
-                        printf("escoooo filosofo %d\n", getpid());
                         break;
                     }
                 }
@@ -258,7 +249,6 @@ void inizio_cena(sem_t * forchetta[], int i, int num_filosofi){
                     printf("[ERROR]: rilevata starvation\n");
                     kill(0, SIGINT);
                     if(check == 1){
-                        printf("escoooo filosofo %d\n", getpid());
                         break;
                     }
                     }
@@ -381,7 +371,6 @@ int main(int argc, char *argv[]){
 
     for(int i = 0; i < num_filosofi; i++){
         waitpid(filosofo[i], NULL, 0);
-        printf("il filosofo %d sta lasciando la cena...\n", filosofo[i]);
     }
 
         //cancella_forchetta();
@@ -392,3 +381,4 @@ int main(int argc, char *argv[]){
 }//fine main
 
 //VERSIONE 4 LUGLIO (con correzione prof)
+//FINALEEEEEEEEEE
