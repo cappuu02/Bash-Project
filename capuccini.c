@@ -73,7 +73,6 @@ void inizio_cena(sem_t * forchetta[], int i, int num_filosofi){
 
             read(pipefd[0], &count_stallo, sizeof(int));
             count_stallo++;
-            printf("incremento count stallo\n");
             write(pipefd[1], &count_stallo, sizeof(int));
             if(count_stallo == num_filosofi){ //STALLO RILEVATO
                 printf("\n[ERROR]: STALLO RILEVATO\n");
@@ -88,7 +87,6 @@ void inizio_cena(sem_t * forchetta[], int i, int num_filosofi){
             read(pipefd[0], &count_stallo, sizeof(int));
 
             count_stallo--;
-            printf("DECREMENTO\n");
             write(pipefd[1], &count_stallo, sizeof(int));
         }
 
@@ -97,6 +95,7 @@ void inizio_cena(sem_t * forchetta[], int i, int num_filosofi){
             int destra = i;
             int sinistra = i+1 % num_filosofi;
 
+            //codice che permette di scambiare le forchette per l'ultimo filosofo
             if(i == num_filosofi - 1){
                 destra = i+1 % num_filosofi;
                 sinistra = i;
@@ -171,12 +170,10 @@ void inizio_cena(sem_t * forchetta[], int i, int num_filosofi){
 
                 read(pipefd[0], &count_stallo, sizeof(int));
                 count_stallo++;
-                printf("INCREMENTO COUNT STALLO\n");
                 write(pipefd[1], &count_stallo, sizeof(int));
                 if(count_stallo == num_filosofi){
                     printf("\n[ERROR]: STALLO RILEVATO\n");
-                    printf("HO CHIUSO I FILE DESCRIPTOR IN LETTURA E SCRITTURA\n");
-                    kill(0, SIGINT); //non bisogna fare cancella forchetta dato che lo facciamo già nel SIGINT (CTRL+C )
+                    kill(0, SIGINT); 
                     if(check == 1){
                         break;
                     }
@@ -197,7 +194,6 @@ void inizio_cena(sem_t * forchetta[], int i, int num_filosofi){
 
                 read(pipefd[0], &count_stallo, sizeof(int));
                 count_stallo--;
-                printf("Decremento");
                 write(pipefd[1], &count_stallo, sizeof(int));
             }
 
@@ -263,6 +259,8 @@ void inizio_cena(sem_t * forchetta[], int i, int num_filosofi){
                     write(pipefd[1], &count_stallo, sizeof(int));
                 }
             }
+
+        //PARTE DI CODICE COMUNE A TUTTI I CASI DEI FLAG
         printf("sta mangiando filosofo %d\n", getpid());
         nanosleep(&tempo, NULL);
         sem_post(forchetta[i]);
@@ -276,7 +274,7 @@ void inizio_cena(sem_t * forchetta[], int i, int num_filosofi){
 //FUNZIONE MAIN
 int main(int argc, char *argv[]){
     struct sigaction sa; //sigaction è il tipo della struct
-    memset(&sa, '\0', sizeof(struct sigaction));
+    memset(&sa, '\0', sizeof(struct sigaction)); //funzione che azzera la struttura sa
     sa.sa_handler = f_handler;
     sigaction(SIGINT, &sa, NULL);
 
@@ -338,7 +336,7 @@ int main(int argc, char *argv[]){
         perror("pipe");
         exit(EXIT_FAILURE); //se ho un errore allora esco dal programma
     }
-    write(pipefd[1], &count_stallo, sizeof(int));
+    write(pipefd[1], &count_stallo, sizeof(int)); //scrivo il valore della variabile dentro la pipe
 
 
     //CREAZIONE FORCHETTE (SEMAFORI)
@@ -356,12 +354,12 @@ int main(int argc, char *argv[]){
         pid_t pid = fork();
         if(pid == -1) {
 		        perror("[NOTICE]: Errore in fork!\n");
-		          exit(-1);
+		        exit(-1);
         } else if(pid == 0) {
-                    printf("\n");
-                    printf("sono il Filosofo num. %d con Pid %d\n", i, getpid());
-                    inizio_cena(forchetta, i, num_filosofi);
-                    exit(0);
+                printf("\n");
+                printf("sono il Filosofo num. %d con Pid %d\n", i, getpid());
+                inizio_cena(forchetta, i, num_filosofi);
+                exit(0);
             }else{
                 filosofo[i] = pid;
             }
@@ -373,12 +371,13 @@ int main(int argc, char *argv[]){
         waitpid(filosofo[i], NULL, 0);
     }
 
-        //cancella_forchetta();
-        printf("\n[FINE DELLA CENA DEI FILOSOFI]\n");
-        printf("\nSaluti dal parent dei filosofi %d\n", getppid());
+    //cancella_forchetta();
+    printf("\n[FINE DELLA CENA DEI FILOSOFI]\n");
+    printf("\nSaluti dal parent dei filosofi %d\n", getppid());
 
-        return 0;//return permette al processo padre di terminare al termine del programma
+    return 0;//return permette al processo padre di terminare al termine del programma
 }//fine main
 
-//VERSIONE 4 LUGLIO (con correzione prof)
-//FINALEEEEEEEEEE
+//PROGETTO FINALE LUCA CAPUCCINI
+//MATRICOLA 347711
+//UNIPG..
